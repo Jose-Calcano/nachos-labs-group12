@@ -11,10 +11,10 @@ class MemoryManager {
         int AllocatePage();
         int DeallocatePage(int which);
         unsigned int GetFreePageCount();
+        void Join(int pid); // Added Join function
 
     private:
         BitMap *bitmap;
-        
         
 };
 

@@ -1,5 +1,5 @@
-// addrspace.cc 
-//	Routines to manage address spaces (executing user programs).
+// addrspace.cc
+// 	Routines to manage address spaces (executing user programs).
 //
 //	In order to run a user program, you must:
 //
@@ -73,29 +73,29 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 // how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
-			+ UserStackSize;	// we need to increase the size
-						// to leave room for the stack
+			+ UserStackSize;    // we need to increase the size
+								// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
+    ASSERT(numPages <= NumPhysPages);        // check we're not trying
+												// to run anything too big --
+												// at least until we have
+												// virtual memory
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
-					numPages, size);
+				numPages, size);
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+	pageTable[i].virtualPage = i;    // for now, virtual page # = phys page #
 	pageTable[i].physicalPage = mm->AllocatePage();
 	pageTable[i].valid = TRUE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
-					// a separate page, we could set its 
-					// pages to be read-only
+									// a separate page, we could set its 
+									// pages to be read-only
     }
     
 // zero out the entire address space, to zero the unitialized data segment 
@@ -131,7 +131,6 @@ unsigned int AddrSpace::GetNumPages() {
 // 	Create a copy of an existing AddrSpace
 //----------------------------------------------------------------------
 
-
 AddrSpace::AddrSpace(AddrSpace* space)
 {
 
@@ -141,7 +140,7 @@ AddrSpace::AddrSpace(AddrSpace* space)
     // Acquire mmLock
     mmLock->Acquire();
 
-    //check if eough free mem to make copy, if not, fail
+    //check if enough free mem to make copy, if not, fail
     ASSERT(n <= mm->GetFreePageCount());
 
     // create a new page table of same size as source addr space
@@ -153,16 +152,16 @@ AddrSpace::AddrSpace(AddrSpace* space)
     TranslationEntry* ppt = space->GetPageTable();
 
     for (unsigned int i = 0; i < n; i++) {
-	    pageTable[i].virtualPage = ppt[i].virtualPage;
-	    pageTable[i].physicalPage = mm->AllocatePage();
-	    pageTable[i].valid = ppt[i].valid;
-	    pageTable[i].use = ppt[i].use;
-	    pageTable[i].dirty = ppt[i].dirty;
-	    pageTable[i].readOnly = ppt[i].readOnly;  
+        pageTable[i].virtualPage = ppt[i].virtualPage;
+        pageTable[i].physicalPage = mm->AllocatePage();
+        pageTable[i].valid = ppt[i].valid;
+        pageTable[i].use = ppt[i].use;
+        pageTable[i].dirty = ppt[i].dirty;
+        pageTable[i].readOnly = ppt[i].readOnly;  
 
-        bcopy(  &(machine->mainMemory[ppt[i].physicalPage*128]),
-                &(machine->mainMemory[pageTable[i].physicalPage*128]),
-                128);
+        bcopy(  &(machine->mainMemory[ppt[i].physicalPage * PageSize]),
+                &(machine->mainMemory[pageTable[i].physicalPage * PageSize]),
+                PageSize);
 
     }
 
@@ -175,11 +174,14 @@ AddrSpace::AddrSpace(AddrSpace* space)
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
-// 	Dealloate an address space.  Nothing for now!
+// 	Deallocate an address space.  Nothing for now!
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace()
 {
-   delete pageTable;
+    for (unsigned int i = 0; i < numPages; i++) {
+        mm->DeallocatePage(pageTable[i].physicalPage);
+    }
+    delete pageTable;
 }
 
 //----------------------------------------------------------------------
@@ -198,10 +200,10 @@ AddrSpace::InitRegisters()
     int i;
 
     for (i = 0; i < NumTotalRegs; i++)
-	machine->WriteRegister(i, 0);
+    machine->WriteRegister(i, 0);
 
     // Initial program counter -- must be location of "Start"
-    machine->WriteRegister(PCReg, 0);	
+    machine->WriteRegister(PCReg, 0);
 
     // Need to also tell MIPS where next instruction is, because
     // of branch delay possibility
@@ -237,4 +239,17 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+//----------------------------------------------------------------------
+// AddrSpace::Join
+// 	Allows the current address space to wait for a child process to complete.
+//----------------------------------------------------------------------
+
+void AddrSpace::Join(int childPid)
+{
+    PCB* childPCB = pcbManager->GetPCB(childPid);
+    if (childPCB != nullptr) {
+        childPCB->Join();
+    }
 }

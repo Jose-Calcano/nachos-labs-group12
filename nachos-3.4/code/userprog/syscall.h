@@ -29,7 +29,6 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
-#define SC_Kill     11
 
 #ifndef IN_ASM
 
@@ -44,8 +43,7 @@
  */
 
 /* Stop Nachos, and print out performance stats */
-void Halt();		
- 
+void Halt();		 
 
 /* Address space control operations: Exit, Exec, and Join */
 
@@ -60,11 +58,13 @@ typedef int SpaceId;
  */
 SpaceId Exec(char *name);
  
-/* Only return once the the user program "id" has finished.  
+/* Only return once the user program "id" has finished.  
  * Return the exit status.
  */
-int Join(SpaceId id); 	
- 
+int Join(SpaceId id); 
+
+/* Assembly language routine to invoke the Join system call */
+int join(int id);
 
 /* File system operations: Create, Open, Read, Write, Close
  * These functions are patterned after UNIX -- files represent
@@ -109,8 +109,6 @@ int Read(char *buffer, int size, OpenFileId id);
 /* Close the file, we're done reading and writing to it. */
 void Close(OpenFileId id);
 
-
-
 /* User-level thread operations: Fork and Yield.  To allow multiple
  * threads to run within a user program. 
  */
@@ -118,17 +116,14 @@ void Close(OpenFileId id);
 /* Fork a thread to run a procedure ("func") in the *same* address space 
  * as the current thread.
  */
-int Fork(void (*func)());
+void Fork(void (*func)());
 
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 
  */
 void Yield();		
 
-/* Return 0 if success, -1 if not 
- */
-int Kill(SpaceId id);		
-
 #endif /* IN_ASM */
 
 #endif /* SYSCALL_H */
+

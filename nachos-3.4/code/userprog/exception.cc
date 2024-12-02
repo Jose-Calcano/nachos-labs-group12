@@ -30,13 +30,13 @@
 
 //----------------------------------------------------------------------
 // ExceptionHandler
-// 	Entry point into the Nachos kernel.  Called when a user program
+//	Entry point into the Nachos kernel.  Called when a user program
 //	is executing, and either does a syscall, or generates an addressing
 //	or arithmetic exception.
 //
-// 	For system calls, the following is the calling convention:
+//	For system calls, the following is the calling convention:
 //
-// 	system call code -- r2
+//	system call code -- r2
 //		arg1 -- r4
 //		arg2 -- r5
 //		arg3 -- r6
@@ -59,7 +59,6 @@ void doExit(int status, int pid) {
 
 }
 
-
 void childFunction(int pid) {
 
     // 1. Restore the state of registers
@@ -69,16 +68,15 @@ void childFunction(int pid) {
     currentThread->space->RestoreState();
 
     // print message for child creation (pid,  pcreg, currentThread->space->GetNumPages())
-    printf("Process [%d] Fork: start at address [%p] and [%d] pages memory\n", pid, (void *) machine->ReadRegister(PCReg), currentThread->space->GetNumPages());
+    printf("Process [%d] Fork: start at address [%p] and [%d] pages memory\n", pid, machine->ReadRegister(PCReg), currentThread->space->GetNumPages());
 
     machine->Run();
 
 }
 
-
 // ---------------------------------------------------------------------
 // doFork
-// 	Entry point into the Nachos kernel.  Called when a user program
+//	Entry point into the Nachos kernel.  Called when a user program
 //  requests to fork a new process.
 // ----------------------------------------------------------------------
 int doFork(int funcAddr) {
@@ -128,20 +126,19 @@ int doFork(int funcAddr) {
 
 }
 
-int doKill(int pid) {
-    PCB* pcb = pcbManager->GetPCB(pid);
-    if (pcb == NULL) {
-        return -1;
+// ---------------------------------------------------------------------
+// doJoin
+//	Entry point into the Nachos kernel.  Called when a user program
+//  requests to join a child process.
+// ----------------------------------------------------------------------
+int doJoin(int childPid) {
+    PCB* childPCB = pcbManager->GetPCB(childPid);
+    if (childPCB == nullptr || childPCB->parent != currentThread->space->pcb) {
+        return -1; // Child process does not exist or is not a child of the calling process
     }
 
-    // if the process is trying to kill itself
-    if (pcb->thread->GetPid() == currentThread->GetPid()) {
-        doExit(0, pid);
-        return 0;
-    }
-    // valid kill, pid exists, and not self, do cleanup and exit
-    pcb->thread->Finish();
-    return 0;
+    childPCB->thread->Join(); // Wait for the child process to complete
+    return childPCB->exitStatus; // Return the exit status of the child process
 }
 
 void incrementPC() {
@@ -151,7 +148,6 @@ void incrementPC() {
     machine->WriteRegister(PCReg, oldPCReg + 4);
     machine->WriteRegister(NextPCReg, oldPCReg + 8);
 }
-
 
 void ExceptionHandler(ExceptionType which)
 {
@@ -176,22 +172,6 @@ void ExceptionHandler(ExceptionType which)
                 doExit(status, pid);
                 break;
 
-            case SC_Yield:
-                printf(exceptionMsg, pid, "Yield");
-                DEBUG('a', "Yield, initiated by user program.\n");
-                currentThread->Yield();
-                incrementPC();
-                break;
-
-            case SC_Kill: { // must be enclosed in a block bc of variable declarations
-                printf(exceptionMsg, pid, "Kill");
-                DEBUG('a', "Kill, initiated by user program.\n");
-                int result = doKill(machine->ReadRegister(4));
-                machine->WriteRegister(2, result);
-                incrementPC();
-                break;
-            }
-
             case SC_Fork: { // must be enclosed in a block bc of variable declarations
                 printf(exceptionMsg, pid, "Fork");
                 DEBUG('a', "Fork, initiated by user program.\n");
@@ -200,12 +180,25 @@ void ExceptionHandler(ExceptionType which)
                 
                 // 9. Write new process pid to r2
                 machine->WriteRegister(2, result);
-
+                
                 // 10. Update counter of old process and return
                 incrementPC();
                 break;
             }
 
+            case SC_Join: {
+                printf(exceptionMsg, pid, "Join");
+                DEBUG('a', "Join, initiated by user program.\n");
+                int childPid = machine->ReadRegister(4);
+                int result = doJoin(childPid);
+                
+                // Write the result (exit status of child or -1 if error) to r2
+                machine->WriteRegister(2, result);
+                
+                // Update program counter
+                incrementPC();
+                break;
+            }
 
             default:
                 printf("Unexpected user mode exception %d %d\n", which, type);

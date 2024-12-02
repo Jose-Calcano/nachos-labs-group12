@@ -9,7 +9,7 @@ PCB::PCB(int pid) {
 
 PCB::~PCB() {
   //  if (children != NULL) {
-   //     delete children;
+  //     delete children;
   //  }
     if (this->thread != NULL) {
         delete this->thread;
@@ -29,3 +29,10 @@ void PCB::AddChild(PCB *pcb) {
 int PCB::RemoveChild(PCB *pcb) {
     return this->children->RemoveItem(pcb);
 }
+
+void PCB::Join() {
+    if (this->thread != NULL) {
+        this->thread->Join();
+    }
+}
+

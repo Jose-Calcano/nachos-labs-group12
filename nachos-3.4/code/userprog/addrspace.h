@@ -18,31 +18,33 @@
 #include "translate.h"
 //#include "pcb.h"
 
-class PCB; //forward defintion else circular dependency
+class PCB; //forward definition to avoid circular dependency
 
 #define UserStackSize		1024 	// increase this as necessary!
 
 class AddrSpace {
   public:
     AddrSpace(OpenFile *executable);	// Create an address space,
-					// initializing it with the program
-					// stored in the file "executable"
+											// initializing it with the program
+											// stored in the file "executable"
     AddrSpace(AddrSpace* space);
-    ~AddrSpace();			// De-allocate an address space
+    ~AddrSpace();										// De-allocate an address space
 
-    void InitRegisters();		// Initialize user-level CPU registers,
-					// before jumping to user code
+    void InitRegisters();								// Initialize user-level CPU registers,
+														// before jumping to user code
 
-    void SaveState();			// Save/restore address space-specific
-    void RestoreState();		// info on a context switch 
+    void SaveState();									// Save/restore address space-specific
+    void RestoreState();								// info on a context switch 
 
-    unsigned int GetNumPages(); //get size of addr space
-    TranslationEntry* GetPageTable(); //return pageTable
-    PCB* pcb; // pointer to the process that owns this process
+    unsigned int GetNumPages();						// get size of addr space
+    TranslationEntry* GetPageTable();					// return pageTable
+    PCB* pcb; 																						// pointer to the process that owns this process
+
+    void Join(int childPid); // Join function to wait for a child process to complete
 
   private:
-    TranslationEntry *pageTable;	// Assume linear page table translation for now!
-    unsigned int numPages;		// Number of pages in the virtual address space
+    TranslationEntry *pageTable;								// Assume linear page table translation for now!
+    unsigned int numPages;									// Number of pages in the virtual address space
 };
 
 #endif // ADDRSPACE_H

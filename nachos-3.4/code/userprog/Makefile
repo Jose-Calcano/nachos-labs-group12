@@ -12,8 +12,8 @@
 DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB
 INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
 HFILES = $(THREAD_H) $(USERPROG_H)
-CFILES = $(THREAD_C) $(USERPROG_C)
-C_OFILES = $(THREAD_O) $(USERPROG_O)
+CFILES = $(THREAD_C) $(USERPROG_C) ../userprog/join.cc
+C_OFILES = $(THREAD_O) $(USERPROG_O) join.o
 
 # if file sys done first!
 # DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS

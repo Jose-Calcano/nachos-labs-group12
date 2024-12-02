@@ -15,7 +15,7 @@ class PCBManager {
 
         PCB* AllocatePCB();
         int DeallocatePCB(PCB *pcb);
-        PCB* GetPCB(int pid);
+        void JoinProcess(int childPid);
 
     private:
         BitMap *bitmap;
